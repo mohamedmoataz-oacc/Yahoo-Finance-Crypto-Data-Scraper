@@ -2,15 +2,26 @@ import scrapy
 from scrapy_splash import SplashRequest
 from ..items import YahoofinanceItem
 
+per_page_count = 100
+data_count = 8924
+offset = (data_count // per_page_count) * per_page_count
+
 class YahooSpider(scrapy.Spider):
     name = 'yahoo'
 
     def start_requests(self):
-        yield SplashRequest('https://finance.yahoo.com/crypto/', callback=self.parse, args={'wait': 0.5})
+        global offset, per_page_count
+        
+        for i in range(0, offset+1, per_page_count):
+            yield SplashRequest(f'https://finance.yahoo.com/crypto/?count={per_page_count}&offset={i}',
+                callback=self.parse,
+                args={'wait': 1, 'timeout': 300}
+            )
 
     def parse(self, response):
         item = YahoofinanceItem()
         rows = response.css('tbody tr')
+        
         for row in rows:
             item['name'] = row.css('a::text').get()
             item['price'] = row.css('fin-streamer[data-field="regularMarketPrice"]::text').get()
