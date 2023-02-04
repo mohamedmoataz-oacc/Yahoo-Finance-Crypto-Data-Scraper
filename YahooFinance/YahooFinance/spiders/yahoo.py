@@ -1,9 +1,13 @@
 import scrapy
-from scrapy_splash import SplashRequest
+import requests
+from bs4 import BeautifulSoup
 from ..items import YahoofinanceItem
 
+r = requests.get('https://finance.yahoo.com/crypto/')
+soup = BeautifulSoup(r.text, 'html.parser')
+
 per_page_count = 100
-data_count = 8924
+data_count = int(soup.find('span', class_='Mstart(15px) Fw(500) Fz(s)').text.split(' ')[2])
 offset = (data_count // per_page_count) * per_page_count
 
 class YahooSpider(scrapy.Spider):
@@ -13,9 +17,8 @@ class YahooSpider(scrapy.Spider):
         global offset, per_page_count
         
         for i in range(0, offset+1, per_page_count):
-            yield SplashRequest(f'https://finance.yahoo.com/crypto/?count={per_page_count}&offset={i}',
-                callback=self.parse,
-                args={'wait': 1, 'timeout': 300}
+            yield scrapy.Request(f'https://finance.yahoo.com/crypto/?count={per_page_count}&offset={i}',
+                callback=self.parse
             )
 
     def parse(self, response):
